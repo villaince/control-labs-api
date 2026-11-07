@@ -1,6 +1,6 @@
 "# ControlLabs API
 
-API REST de ControlLabs para la gestión de préstamos, usuarios, ambientes, equipos y novedades. Está construida con Express y TypeScript. Las operaciones de negocio están preparadas como endpoints, pero responden con `501 Not Implemented` hasta que se conecten sus servicios.
+API REST de ControlLabs para la gestión de préstamos, usuarios, ambientes, equipos y novedades. Está construida con Express y TypeScript. Los préstamos usan la capa de servicios y un repositorio temporal en memoria; los demás recursos responden `501 Not Implemented` hasta conectar sus servicios.
 
 ## Requisitos
 
@@ -62,24 +62,31 @@ Las rutas todavía no conectadas a servicios responden `501` intencionalmente.
 
 ### Registro de préstamos
 
-`POST /api/v1/loans` requiere un objeto JSON con todos estos campos:
+`POST /api/v1/loans` requiere exactamente estos campos:
 
 ```json
 {
-  "aula": "Lab 1",
-  "numeroPC": 4,
-  "nombreGuardaEntrega": "Ana",
-  "instructorRecibe": "Luis"
+  "roomId": "d3eebc99-9c0b-4ef8-bb6d-6bb9bd380d44",
+  "instructorId": "c2eebc99-9c0b-4ef8-bb6d-6bb9bd380c33",
+  "guardaId": "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22",
+  "numeroPc": 1
 }
 ```
 
-`numeroPC` debe ser un número entero y los demás campos deben ser cadenas no vacías. Un payload inválido responde `400`.
+Los tres identificadores deben ser UUID y `numeroPc` un entero positivo. Los campos adicionales no están permitidos. `guardaId` se envía en el body solo para esta práctica; con autenticación debe obtenerse de la identidad verificada.
+
+Los préstamos se guardan en memoria: desaparecen al detener o reiniciar el servidor. El servicio permite consultarlos por `roomId` y aceptar una sola vez cada préstamo. No se requiere PostgreSQL para ejecutar esta sesión. El modelo relacional de referencia está en [`database/controllabs.sql`](./database/controllabs.sql); no se carga automáticamente.
+
+La ruta `GET /__test/error` provoca un error `500` para pruebas y solo está disponible cuando `NODE_ENV` no es `production`.
 
 ## Respuestas comunes
 
 - `GET /api/v1/health`: `200` con el estado `success`.
 - Ruta inexistente: `404` con el mensaje `Ruta no encontrada.`
 - Payload de préstamo inválido: `400` con el mensaje `Datos del préstamo inválidos.`
+- Reglas de negocio incumplidas: `400` con el código `VALIDATION_ERROR`.
+- Préstamo inexistente: `404` con el código `NOT_FOUND`.
+- Intento de aceptar dos veces el mismo préstamo: `409` con el código `CONFLICT`.
 - JSON malformado: `400` con el mensaje `El cuerpo JSON está malformado.`
 - Error inesperado: `500` con un mensaje genérico.
 
