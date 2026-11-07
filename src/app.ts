@@ -20,6 +20,12 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
 
 app.use('/api/v1', apiRoutes);
 
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/__test/error', () => {
+    throw new Error('Error de prueba para verificar el 500');
+  });
+}
+
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ success: false, error: 'Ruta no encontrada.' });
 });
